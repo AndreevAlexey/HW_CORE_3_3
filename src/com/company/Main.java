@@ -6,32 +6,30 @@ import java.util.zip.*;
 public class Main {
     final static String ROOT_DIR = "C://games//savegames";
     final static String FILE_END = ".dat";
-
+    static StringBuilder LOG;
+    // распаковка
     static void unZip(String pathFrom, String pathTo) {
-        File fromDir = new File(pathFrom);
+        File fromZip = new File(pathFrom);
         File toDir = new File(pathTo);
         String name;
-        // переданы директории
-        if(fromDir.isDirectory() && toDir.isDirectory()) {
-            // смотрим все архивы в источнике
-            for (File arch : fromDir.listFiles((a, b) -> b.endsWith(".zip"))) {
-                // распаковка
-                try (ZipInputStream zis = new ZipInputStream(new FileInputStream(arch))) {
-                    ZipEntry entry;
-                    while ((entry = zis.getNextEntry()) != null) {
-                        name = entry.getName();
-                        // поток - получатель
-                        FileOutputStream fos = new FileOutputStream(toDir.getPath() + "//" + name);
-                        for (int c = zis.read(); c != -1; c = zis.read()) {
-                            fos.write(c);
-                        }
-                        fos.flush();
-                        fos.close();
-                        zis.closeEntry();
+        // переданы корректные параметры
+        if(fromZip.isFile() && toDir.isDirectory()) {
+            // распаковка
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(fromZip))) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    name = entry.getName();
+                    // поток - получатель
+                    FileOutputStream fos = new FileOutputStream(toDir.getPath() + "//" + name);
+                    for (int c = zis.read(); c != -1; c = zis.read()) {
+                        fos.write(c);
                     }
-                } catch (IOException exp) {
-                    System.out.println("Ошибка при открытии архива: " + exp.getMessage());
+                    fos.flush();
+                    fos.close();
+                    zis.closeEntry();
                 }
+            } catch (IOException exp) {
+                LOG.append("\nОшибка при открытии архива: ").append(exp.getMessage());
             }
         }
     }
@@ -44,9 +42,8 @@ public class Main {
             // получение данных
             try (FileInputStream fis = new FileInputStream(save); ObjectInputStream oos = new ObjectInputStream(fis)) {
                 saveRec = (GameProgress) oos.readObject();
-                //System.out.println(saveRec.toString());
             } catch (Exception exp) {
-                System.out.println("Ошибка при десериализации файла " + save.getName() + " :" + exp.getMessage());
+                LOG.append("\nОшибка при десериализации файла ").append(save.getName()).append(" :").append(exp.getMessage());
             }
         }
         return saveRec;
@@ -54,8 +51,9 @@ public class Main {
 
     public static void main(String[] args) {
         File wrkDir = new File(ROOT_DIR);
+        LOG = new StringBuilder();
         // распаковка архива
-        unZip(ROOT_DIR, ROOT_DIR);
+        unZip(wrkDir + "//saves.zip", ROOT_DIR);
         GameProgress saveRec;
         // смотрим все сохранения из архива
         for(File save : wrkDir.listFiles((a,b) -> b.endsWith(FILE_END))){
@@ -64,5 +62,6 @@ public class Main {
             // вывод в консоль
             System.out.println(saveRec.toString());
         }
+        if(!LOG.isEmpty()) System.out.println(LOG.toString());
     }
 }
